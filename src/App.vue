@@ -1,28 +1,80 @@
 <template>
   <div id="app">
-    <img src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <div v-if="mode === 'edit'" class="media-editor-container">
+      <MediaEditor
+        :playlist="playlist"
+        v-on:add="addMedia"
+        v-on:remove="deleteMedia"
+        @play="mode = 'play'"/>
+    </div>
+    <div v-else-if="mode === 'play'" class="media-player-container">
+      <MediaPlayer :playlist="playlist" @edit="mode = 'edit'"/>
+    </div>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import MediaEditor from './components/MediaEditor.vue';
+import MediaPlayer from './components/MediaPlayer.vue';
 
 export default {
   name: 'app',
+  data: function () {
+    return {
+      playlist: [],
+      mode: 'edit',
+    }
+  },
   components: {
-    HelloWorld
+    MediaEditor, MediaPlayer
+  },
+  computed: {
+    currentView: () => ({play: MediaPlayer, edit: MediaEditor}[this.mode]),
+  },
+  methods: {
+    nextId: (()=> {
+      let id = 0
+      return () => (id++)
+    })(),
+    addMedia: function(file) {
+      const reader = new FileReader()
+      reader.onload = (() => {
+        const self = this
+        const id = this.nextId()
+        this.playlist.push({id, type: 'load', filename: '', dataUrl: ''})
+        return function(e) {
+          self.$set(self.playlist, self.playlist.findIndex((item) => (item.id === id)), {
+            id,
+            type: file.type,
+            filename: file.name,
+            dataUrl: e.target.result
+          })
+        }
+      })()
+      reader.readAsDataURL(file)
+    },
+    deleteMedia: function(id) {
+      this.playlist.splice(this.playlist.findIndex((item) => (item.id === id)), 1)
+    }
   }
 }
 </script>
 
 <style>
 #app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+}
+.media-editor-container, .media-player-container {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 5px;
 }
 </style>
